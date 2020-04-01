@@ -1,0 +1,16 @@
+version: v1.0
+name: Cacheman Tests
+agent:
+  machine:
+    type: e1-standard-2
+    os_image: ubuntu1804
+
+blocks:
+  - name: "Tests"
+    task:
+      jobs:
+      - name: Tests
+        commands:
+          - checkout
+          - make setup
+          - make test
