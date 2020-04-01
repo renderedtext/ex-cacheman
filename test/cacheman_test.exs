@@ -3,9 +3,29 @@ defmodule CachemanTest do
   doctest Cacheman
 
   setup_all do
-    {:ok, _} = Cacheman.start_child(:good, backend: {:redis, "redis-1", 6379, 5})
-    # {:ok, _} = Cacheman.start_child(:mem, backend: :memory)
-    # {:ok, _} = Cacheman.start_child(:broken, backend: {:redis, "fake", 6388, 5})
+    {:ok, _} =
+      Cacheman.start_link(:good, %{
+        prefix: "good/",
+        backend: %{
+          type: :redis,
+          host: "redis-1",
+          port: 6379,
+          pool_size: 5
+        }
+      })
+
+    {:ok, _} =
+      Cacheman.start_link(:broken, %{
+        prefix: "broken/",
+        backend: %{
+          type: :redis,
+          host: "fake-host",
+          port: 6379,
+          pool_size: 5
+        }
+      })
+
+    :ok
   end
 
   describe "redis" do

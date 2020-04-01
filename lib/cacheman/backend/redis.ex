@@ -8,9 +8,12 @@ defmodule Cacheman.Backend.Redis do
   end
 
   def put(conn, key, value, ttl) do
-    Redix.command(conn, ["SET", key, value] ++ ttl_command(ttl))
+    case Redix.command(conn, ["SET", key, value] ++ ttl_command(ttl)) do
+      {:ok, "OK"} -> {:ok, value}
+      e -> e
+    end
   end
 
-  def ttl_command(:infinity), do: []
-  def ttl_command(ttl), do: ["PX", "#{ttl}"]
+  def ttl_command(ttl: :infinity), do: []
+  def ttl_command(ttl: ttl), do: ["PX", "#{ttl}"]
 end
