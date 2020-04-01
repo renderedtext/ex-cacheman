@@ -4,8 +4,8 @@ defmodule CachemanTest do
 
   setup_all do
     {:ok, _} = Cacheman.start_child(:good, backend: {:redis, "redis-1", 6379, 5})
-    {:ok, _} = Cacheman.start_child(:mem, backend: :memory)
-    {:ok, _} = Cacheman.start_child(:broken, backend: {:redis, "fake", 6388, 5})
+    # {:ok, _} = Cacheman.start_child(:mem, backend: :memory)
+    # {:ok, _} = Cacheman.start_child(:broken, backend: {:redis, "fake", 6388, 5})
   end
 
   describe "redis" do

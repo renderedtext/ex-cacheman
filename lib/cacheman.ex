@@ -1,72 +1,40 @@
 defmodule Cacheman do
-  use GenServer
-
   def start_link(name, opts) do
-    GenServer.start_link(name, opts)
+    if opts.backend == :redis do
+      {:ok, _} = Cacheman.Backend.Redis.start_link(name, opts)
+
+      {:ok,
+       %{
+         backend_module: Cacheman.Backend.Redis,
+         backend_pid: backend_pid,
+         opts: opts
+       }}
+    end
   end
 
-  def init(name, opts) do
-    {:ok, backend} = start_backend(opts)
-
-    {:ok, opts}
+  def get(conn, key) do
+    apply(conn.backend_module, :get, [conn.backend_pid, fully_qualified_key_name(conn, key)])
   end
 
-  def start_backend(opts) do
-    %{
+  def put(conn, key, value), do: put(key, value, ttl: :infinity)
 
-    }
+  def put(conn, key, value, ttl: ttl) do
+    apply(conn.backend_module, :put, [
+      conn.backend_pid,
+      fully_qualified_key_name(conn, key),
+      value,
+      ttl
+    ])
   end
 
-  def backend(opts) do
-    backend_name = :"cacheman_#{name}_backend"
+  def fetch(conn, key, fallback), do: fetch(conn, key, [ttl: :infinity], fallback)
 
-    {:ok, backend} = Cacheman.Backend.Redis.start_link(name, host, port, pool_size)
-  end
-
-end
-
-  def put(key, value) do
-    put(key, value, ttl: :infinity)
-  end
-
-  def put(key, value, ttl: ttl) do
-    command = [
-      "SET",
-      fully_qualified_key_name(key),
-      value
-    ]
-
-    command =
-      if ttl == :infinity do
-        command
-      else
-        command ++ ["PX", "#{ttl}"]
-      end
-
-    {:ok, "OK"} = Cacheman.Redis.command(command)
-    {:ok, value}
-  end
-
-  def get(key) do
-    {:ok, content} =
-      Cacheman.Redis.command([
-        "GET",
-        fully_qualified_key_name(key)
-      ])
-
-    {:ok, content}
-  end
-
-  def fetch(key, fallback) do
-    fetch(key, [ttl: :infinity], fallback)
-  end
-
-  def fetch(key, options, fallback) do
-    case get(key) do
+  def fetch(conn, key, options, fallback) do
+    case get(conn, key) do
       {:ok, nil} ->
         value = fallback.()
 
-        put(key, value, options)
+        put(conn, key, value, options)
 
         {:ok, value}
 
@@ -78,11 +46,7 @@ end
     end
   end
 
-  def fully_qualified_key_name(key) do
-    prefix <> key
-  end
-
-  defp prefix do
-    Application.get_env(:cacheman, :prefix)
+  def fully_qualified_key_name(conn, key) do
+    conn.opts.prefix <> key
   end
 end
