@@ -1,0 +1,9 @@
+FROM elixir:1.7
+
+#
+# Set up Elixir and Node environment
+#
+
+RUN mix local.hex --force && mix local.rebar --force && apt-get update
+
+WORKDIR /app

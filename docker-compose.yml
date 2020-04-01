@@ -1,0 +1,25 @@
+version: '3.6'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+
+    tty: true
+    volumes:
+      - .:/app
+
+    links:
+      - redis-1:redis-1
+
+  redis-1:
+    image: "redis:5-buster"
+    entrypoint: "redis-server --appendonly yes"
+
+    volumes:
+      - redis-data:/var/lib/redis
+
+volumes:
+  redis-data:
+    driver: local
