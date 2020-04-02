@@ -4,6 +4,18 @@ Cacheman is a Redis backed Rails.cache equivalent for Elixir applications.
 
 The primary API for using Cacheman is Cacheman.fetch.
 
+## Install
+
+Add Cacheman to your mix file
+
+``` elixir
+defp deps do
+  [
+    {:cacheman, github: "renderedtext/ex-cacheman"}
+  ]
+end
+```
+
 ## How to use
 
 Add an instance of cache to your app's supervisor:
