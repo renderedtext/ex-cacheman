@@ -1,4 +1,83 @@
 defmodule Cacheman do
+  @doc """
+  Cacheman is a Redis backed Rails.cache equivalent for Elixir applications.
+
+  The primary API for using Cacheman is Cacheman.fetch.
+
+  Example usage of Cacheman:
+
+  1. Add an instance of cache to your app's supervisor:
+
+    cache_name = :app
+    cache_opts = %{
+      prefix: "example/",       # every key in the cache store will be prefixed with example/
+      backend: %{
+        type: :redis,           # redis for backend
+        host: "localhost",      # redis instance is listening on localhost
+        port: 6379,             # redis instance is listening on port 6379
+        pool_size: 5            # 5 parallel connections are established to the cache server
+      }
+    }
+
+    children = [
+      {Cacheman, [cache_name, cache_opts]}
+    ]
+
+  2. Fetch from the Cache, with a fallback function in case the entry is not found:
+
+    {:ok, dash} = Cacheman.fetch(:app, "users-#{user.id}-dashboard", fn ->
+      {:ok, dashboard} = render_dashboard(user)
+
+      dashboard
+    end)
+
+  Advanced usage include setting a TTL on the keys, and low level get/put APIs:
+
+  1. TTL for entries:
+
+    {:ok, dash} = Cacheman.fetch(:app, "users-#{user.id}-dashboard", ttl: :timer.hours(6), fn ->
+      {:ok, dashboard} = render_dashboard(user)
+
+      dashboard
+    end)
+
+  2. Get a key:
+
+    {:ok, entry} = Cacheman.get(:app, "user-#{user.id}-dashboard")
+
+  3. Put values in cache:
+
+    {:ok, dashboard} = render_dashboard(user)
+
+    {:ok, _} = Cacheman.put(:app, "user-#{user.id}-dashboard", dashboard, ttl: :timer.hours(6))
+
+
+  Every Cacheman instance must define a cache key prefix. This allows multiplexing
+  of caches accross multiple clients or areas of work.
+
+  Example, a dedicated namespace for user caches and project caches:
+
+    {:ok, _} = Cacheman.start_link(:user, %{
+      prefix: "users/",
+      backend: %{
+        type: :redis,
+        host: "redis",
+        port: 6379,
+        pool_size: 5
+      }
+    })
+
+    {:ok, _} = Cacheman.start_link(:project, %{
+      prefix: "projects/",
+      backend: %{
+        type: :redis,
+        host: "redis",
+        port: 6379,
+        pool_size: 5
+      }
+    })
+  """
+
   use GenServer
   require Logger
 
@@ -10,20 +89,65 @@ defmodule Cacheman do
     GenServer.start_link(__MODULE__, opts, name: full_process_name(name))
   end
 
+  @doc """
+  Each cacheman process is has a registered name. For example the :app cache
+  would be registered as "cacheman-client-app".
+  """
   def full_process_name(name) do
     :"cacheman-client-#{name}"
   end
 
+  @doc """
+  Gets a value from the cache.
+
+  {:ok, user} = Cacheman.get(:app, "user-#{id}")
+
+  The response can be one of the following:
+
+   - {:ok, value}          - if the entry is found
+   - {:ok, nil}            - if the entry is not-found
+   - {:error, description} - if there was an error while communicating with cache backends
+  """
   def get(name, key) do
     GenServer.call(full_process_name(name), {:get, key})
   end
 
   @default_put_options [ttl: :infinity]
 
+  @doc """
+  Puts a value into the cache.
+
+  {:ok, user} = Cacheman.put(:app, "user-#{id}", "hello-I-am-peter")
+
+  The response can be one of the following:
+
+   - {:ok, value}          - if the entry is sucessfully inserted
+   - {:error, description} - if there was an error while communicating with cache backends
+
+  Optionally, a TTL option can be passed to the put action:
+
+  {:ok, user} = Cacheman.put(:app, "user-#{id}", "hello-I-am-peter", ttl: :timer.minutes(5))
+
+  Where in the previous example, the cache key will be storred for 5 minutes.
+
+  Nil values are not storrable in the cache.
+  """
   def put(name, key, value, put_opts \\ @default_put_options) do
-    GenServer.call(full_process_name(name), {:put, key, value, put_opts})
+    if value == nil do
+      {:ok, nil}
+    else
+      GenServer.call(full_process_name(name), {:put, key, value, put_opts})
+    end
   end
 
+  @doc """
+  Fetch is the main entrypoint for caching. The algorithm works like this:
+
+  - if the cache key is found, it returns the found value
+  - otherwise, it calculates the value of the fallback function
+     - if the fallback is not-nil, it is storred in the cache and returned
+     - otherwise, {:ok, nil} is returned and it is not storred in the cache
+  """
   def fetch(name, key, fallback), do: fetch(name, key, @default_put_options, fallback)
 
   def fetch(name, key, put_opts, fallback) do
