@@ -85,6 +85,10 @@ defmodule Cacheman do
   # Cacheman API
   #
 
+  def start_link([name, opts]) do
+    GenServer.start_link(__MODULE__, opts, name: full_process_name(name))
+  end
+
   def start_link(name, opts) do
     GenServer.start_link(__MODULE__, opts, name: full_process_name(name))
   end
