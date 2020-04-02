@@ -8,48 +8,48 @@ defmodule Cacheman do
 
   1. Add an instance of cache to your app's supervisor:
 
-    cache_name = :app
-    cache_opts = %{
-      prefix: "example/",       # every key in the cache store will be prefixed with example/
-      backend: %{
-        type: :redis,           # redis for backend
-        host: "localhost",      # redis instance is listening on localhost
-        port: 6379,             # redis instance is listening on port 6379
-        pool_size: 5            # 5 parallel connections are established to the cache server
-      }
+  cache_name = :app
+  cache_opts = %{
+    prefix: "example/",       # every key in the cache store will be prefixed with example/
+    backend: %{
+      type: :redis,           # redis for backend
+      host: "localhost",      # redis instance is listening on localhost
+      port: 6379,             # redis instance is listening on port 6379
+      pool_size: 5            # 5 parallel connections are established to the cache server
     }
+  }
 
-    children = [
-      {Cacheman, [cache_name, cache_opts]}
-    ]
+  children = [
+    {Cacheman, [cache_name, cache_opts]}
+  ]
 
   2. Fetch from the Cache, with a fallback function in case the entry is not found:
 
-    {:ok, dash} = Cacheman.fetch(:app, "users-#{user.id}-dashboard", fn ->
-      {:ok, dashboard} = render_dashboard(user)
+  {:ok, dash} = Cacheman.fetch(:app, "users-dashboard", fn ->
+    {:ok, dashboard} = render_dashboard(user)
 
-      dashboard
-    end)
+    dashboard
+  end)
 
   Advanced usage include setting a TTL on the keys, and low level get/put APIs:
 
   1. TTL for entries:
 
-    {:ok, dash} = Cacheman.fetch(:app, "users-#{user.id}-dashboard", ttl: :timer.hours(6), fn ->
-      {:ok, dashboard} = render_dashboard(user)
+  {:ok, dash} = Cacheman.fetch(:app, "users-dashboard", ttl: :timer.hours(6), fn ->
+    {:ok, dashboard} = render_dashboard(user)
 
-      dashboard
-    end)
+    dashboard
+  end)
 
   2. Get a key:
 
-    {:ok, entry} = Cacheman.get(:app, "user-#{user.id}-dashboard")
+  {:ok, entry} = Cacheman.get(:app, "user-dashboard")
 
   3. Put values in cache:
 
-    {:ok, dashboard} = render_dashboard(user)
+  {:ok, dashboard} = render_dashboard(user)
 
-    {:ok, _} = Cacheman.put(:app, "user-#{user.id}-dashboard", dashboard, ttl: :timer.hours(6))
+  {:ok, _} = Cacheman.put(:app, "user-dashboard", dashboard, ttl: :timer.hours(6))
 
 
   Every Cacheman instance must define a cache key prefix. This allows multiplexing
@@ -57,25 +57,25 @@ defmodule Cacheman do
 
   Example, a dedicated namespace for user caches and project caches:
 
-    {:ok, _} = Cacheman.start_link(:user, %{
-      prefix: "users/",
-      backend: %{
-        type: :redis,
-        host: "redis",
-        port: 6379,
-        pool_size: 5
-      }
-    })
+  {:ok, _} = Cacheman.start_link(:user, %{
+    prefix: "users/",
+    backend: %{
+      type: :redis,
+      host: "redis",
+      port: 6379,
+      pool_size: 5
+    }
+  })
 
-    {:ok, _} = Cacheman.start_link(:project, %{
-      prefix: "projects/",
-      backend: %{
-        type: :redis,
-        host: "redis",
-        port: 6379,
-        pool_size: 5
-      }
-    })
+  {:ok, _} = Cacheman.start_link(:project, %{
+    prefix: "projects/",
+    backend: %{
+      type: :redis,
+      host: "redis",
+      port: 6379,
+      pool_size: 5
+    }
+  })
   """
 
   use GenServer
@@ -100,7 +100,7 @@ defmodule Cacheman do
   @doc """
   Gets a value from the cache.
 
-  {:ok, user} = Cacheman.get(:app, "user-#{id}")
+  {:ok, user} = Cacheman.get(:app, "user-id")
 
   The response can be one of the following:
 
@@ -117,7 +117,7 @@ defmodule Cacheman do
   @doc """
   Puts a value into the cache.
 
-  {:ok, user} = Cacheman.put(:app, "user-#{id}", "hello-I-am-peter")
+  {:ok, user} = Cacheman.put(:app, "user-id", "hello-I-am-peter")
 
   The response can be one of the following:
 
@@ -126,7 +126,7 @@ defmodule Cacheman do
 
   Optionally, a TTL option can be passed to the put action:
 
-  {:ok, user} = Cacheman.put(:app, "user-#{id}", "hello-I-am-peter", ttl: :timer.minutes(5))
+  {:ok, user} = Cacheman.put(:app, "user-id", "hello-I-am-peter", ttl: :timer.minutes(5))
 
   Where in the previous example, the cache key will be storred for 5 minutes.
 

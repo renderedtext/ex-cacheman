@@ -21,7 +21,8 @@ defmodule ExCacheman.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:redix, "~> 0.10.5"}
+      {:redix, "~> 0.10.5"},
+      {:poolboy, "~> 1.5"}
     ]
   end
 end
