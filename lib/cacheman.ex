@@ -149,19 +149,22 @@ defmodule Cacheman do
 
   - if the cache key is found, it returns the found value
   - otherwise, it calculates the value of the fallback function
-     - if the fallback is not-nil, it is storred in the cache and returned
-     - otherwise, {:ok, nil} is returned and it is not storred in the cache
+     - if the fallback result is {:ok, val}, it is storred in the cache and returned
+     - otherwise, the vaue is returned and it is not storred in the cache
   """
   def fetch(name, key, fallback), do: fetch(name, key, @default_put_options, fallback)
 
   def fetch(name, key, put_opts, fallback) do
     case get(name, key) do
       {:ok, nil} ->
-        value = fallback.()
+        case fallback.() do
+          {:ok, value} ->
+            put(name, key, value, put_opts)
+            {:ok, value}
 
-        put(name, key, value, put_opts)
-
-        {:ok, value}
+          e ->
+            e
+        end
 
       {:ok, value} ->
         {:ok, value}
@@ -177,7 +180,7 @@ defmodule Cacheman do
 
   def init(opts) do
     if opts.backend.type != :redis do
-      raise "TOOD"
+      raise "Unknown backend type #{opts.backend.type}"
     end
 
     {:ok, backend} = Cacheman.Backend.Redis.start_link(opts.backend)

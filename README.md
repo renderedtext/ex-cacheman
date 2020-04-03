@@ -42,21 +42,18 @@ Fetch from the Cache, with a fallback function in case the entry is not found:
 ``` elixir
 {:ok, dash} = Cacheman.fetch(:app, "users-#{user.id}-dashboard", fn ->
   {:ok, dashboard} = render_dashboard(user)
-
-  dashboard
 end)
 ```
+
+The fallback function saves everything into the cache that has the
+`{:ok, value}` format.
 
 ## Advanced usage (TTL, and low level get/put APIs)
 
 TTL for entries:
 
 ``` elixir
-{:ok, dash} = Cacheman.fetch(:app, "users-#{user.id}-dashboard", ttl: :timer.hours(6), fn ->
-  {:ok, dashboard} = render_dashboard(user)
-
-  dashboard
-end)
+{:ok, dash} = Cacheman.fetch(:app, "users-#{user.id}-dashboard", ttl: :timer.hours(6), fn -> render_dashboard(user) end)
 ```
 
 Get a key:
