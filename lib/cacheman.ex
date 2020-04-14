@@ -174,6 +174,10 @@ defmodule Cacheman do
     end
   end
 
+  def exists?(name, key) do
+    GenServer.call(full_process_name(name), {:exists?, key})
+  end
+
   #
   # GenServer impl
   #
@@ -208,6 +212,16 @@ defmodule Cacheman do
         Logger.error("Cacheman - #{inspect(e)}")
         {:reply, {:ok, nil}, opts}
     end
+  end
+
+  def handle_call({:exists?, key}, _from, opts) do
+    response =
+      apply(opts.backend_module, :exists?, [
+        opts.backend_pid,
+        fully_qualified_key_name(opts, key)
+      ])
+
+    {:reply, response, opts}
   end
 
   def handle_call({:put, key, value, put_opts}, _from, opts) do

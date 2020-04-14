@@ -69,6 +69,16 @@ defmodule CachemanTest do
       :timer.sleep(1000)
       assert {:ok, nil} = Cacheman.get(:good, key)
     end
+
+    test "exists?" do
+      content = "hello"
+
+      assert {:ok, value} = Cacheman.put(:good, "test1", content)
+      assert value == content
+
+      assert Cacheman.exists?(:good, "test1")
+      refute Cacheman.exists?(:good, "test2")
+    end
   end
 
   describe "redis - broken" do
@@ -94,6 +104,10 @@ defmodule CachemanTest do
       assert {:error, _} = Cacheman.put(:broken, key, "hello", ttl: ttl)
       assert {:ok, nil} = Cacheman.get(:broken, key)
       assert {:ok, nil} = Cacheman.get(:broken, key)
+    end
+
+    test "exists?" do
+      assert Cacheman.exists?(:broken, "test1") == false
     end
   end
 end

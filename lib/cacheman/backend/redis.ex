@@ -20,6 +20,16 @@ defmodule Cacheman.Backend.Redis do
     end)
   end
 
+  def exists?(conn, key) do
+    :poolboy.transaction(conn, fn c ->
+      case Redix.command(c, ["EXISTS", key]) do
+        {:ok, 1} -> true
+        {:ok, 0} -> false
+        _ -> false
+      end
+    end)
+  end
+
   def put(conn, key, value, ttl) do
     :poolboy.transaction(conn, fn c ->
       case Redix.command(c, ["SET", key, value] ++ ttl_command(ttl)) do
