@@ -183,7 +183,7 @@ defmodule Cacheman do
   end
 
   def delete(name, keys) when is_list(keys) do
-    GenServer.call(full_process_name(name), {:delete, keys}
+    GenServer.call(full_process_name(name), {:delete, keys})
   end
 
   def clear(name) do

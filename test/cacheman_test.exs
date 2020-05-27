@@ -79,6 +79,36 @@ defmodule CachemanTest do
       assert Cacheman.exists?(:good, "test1")
       refute Cacheman.exists?(:good, "test2")
     end
+
+    test "clear" do
+      Cacheman.put(:good, "random-key", "hey")
+      assert Cacheman.exists?(:good, "random-key")
+      Cacheman.clear(:good)
+      refute Cacheman.exists?(:good, "random-key")
+    end
+
+    test "delete key" do
+      Cacheman.put(:good, "key1", "hehe")
+      assert Cacheman.exists?(:good, "key1")
+      Cacheman.delete(:good, "key1")
+      refute Cacheman.exists?(:good, "key1")
+    end
+
+    test "delete [keys]" do
+      Cacheman.put(:good, "key1", "it doesn't matter")
+      Cacheman.put(:good, "key2", "it doesn't matter")
+      Cacheman.put(:good, "key3", "it doesn't matter")
+
+      assert Cacheman.exists?(:good, "key1")
+      assert Cacheman.exists?(:good, "key1")
+      assert Cacheman.exists?(:good, "key1")
+
+      Cacheman.delete(:good, ["key1", "key2"])
+
+      refute Cacheman.exists?(:good, "key1")
+      refute Cacheman.exists?(:good, "key2")
+      assert Cacheman.exists?(:good, "key3")
+    end
   end
 
   describe "redis - broken" do
