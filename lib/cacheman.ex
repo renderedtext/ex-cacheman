@@ -178,6 +178,18 @@ defmodule Cacheman do
     GenServer.call(full_process_name(name), {:exists?, key})
   end
 
+  def delete(name, key) when is_binary(key) do
+    GenServer.call(full_process_name(name), {:delete, [key]})
+  end
+
+  def delete(name, keys) when is_list(keys) do
+    GenServer.call(full_process_name(name), {:delete, keys}
+  end
+
+  def clear(name) do
+    GenServer.call(full_process_name(name), {:clear})
+  end
+
   #
   # GenServer impl
   #
@@ -231,6 +243,25 @@ defmodule Cacheman do
         fully_qualified_key_name(opts, key),
         value,
         put_opts
+      ])
+
+    {:reply, response, opts}
+  end
+
+  def handle_call({:delete, keys}, _from, opts) do
+    response =
+      apply(opts.backend_module, :delete, [
+        opts.backend_pid,
+        keys |> Enum.map(fn key -> fully_qualified_key_name(opts, key) end)
+      ])
+
+    {:reply, response, opts}
+  end
+
+  def handle_call({:clear}, _from, opts) do
+    response =
+      apply(opts.backend_module, :clear, [
+        opts.backend_pid
       ])
 
     {:reply, response, opts}
