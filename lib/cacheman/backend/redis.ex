@@ -39,6 +39,18 @@ defmodule Cacheman.Backend.Redis do
     end)
   end
 
+  def delete(conn, keys) do
+    :poolboy.transaction(conn, fn c ->
+      Redix.command(c, ["DEL"] ++ keys)
+    end)
+  end
+
+  def clear(conn) do
+    :poolboy.transaction(conn, fn c ->
+      Redix.command(c, ["FLUSHALL"])
+    end)
+  end
+
   def ttl_command(ttl: :infinity), do: []
   def ttl_command(ttl: ttl), do: ["PX", "#{ttl}"]
 end
