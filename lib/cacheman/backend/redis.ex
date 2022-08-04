@@ -25,7 +25,7 @@ defmodule Cacheman.Backend.Redis do
       case Redix.command(c, ["EXISTS", key]) do
         {:ok, 1} -> true
         {:ok, 0} -> false
-        {:error, reason} -> raise reason
+        {:error, reason} -> reason
       end
     end)
   end

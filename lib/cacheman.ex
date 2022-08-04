@@ -233,7 +233,12 @@ defmodule Cacheman do
         fully_qualified_key_name(opts, key)
       ])
 
-    {:reply, response, opts}
+    if is_boolean(response) do
+      {:reply, response, opts}
+    else
+      Logger.error("Cacheman - #{inspect(response)}")
+      {:reply, false, opts}
+    end
   end
 
   def handle_call({:put, key, value, put_opts}, _from, opts) do
