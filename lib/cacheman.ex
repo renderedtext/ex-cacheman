@@ -144,6 +144,26 @@ defmodule Cacheman do
     end
   end
 
+  @type key_value_pair :: {String.t(), String.t()}
+  @doc """
+  Puts a list of key-value pairs into the cache as a part of single request to the redis server
+
+  {:ok, no_of_successful_inserts} = Cacheman.put_batch(:app, [{"key1", "value1"}, {"key2", "value2"}])
+
+  The response can be one of the following:
+
+   - {:ok, no_of_successful_inserts}  - if no errors were raised by Redix
+   - {:error, redix_error}            - if there was an error while communicating with cache backends
+
+  Same as with Put function, TTL can optionally provided
+  """
+  @spec put_batch(String.t(), list(key_value_pair), list()) ::
+          {:ok, integer}
+          | {:error, Redix.Protocol.ParseError | Redix.Error | Redix.ConnectionError}
+  def put_batch(name, key_value_pairs, put_opts \\ @default_put_options) do
+    GenServer.call(full_process_name(name), {:put_batch, key_value_pairs, put_opts})
+  end
+
   @doc """
   Fetch is the main entrypoint for caching. The algorithm works like this:
 
@@ -251,6 +271,28 @@ defmodule Cacheman do
       ])
 
     {:reply, response, opts}
+  end
+
+  def handle_call({:put_batch, key_value_pairs, put_opts}, _from, opts) do
+    response =
+      apply(opts.backend_module, :put_batch, [
+        opts.backend_pid,
+        Enum.map(key_value_pairs, fn key_value_pair ->
+          {
+            fully_qualified_key_name(opts, elem(key_value_pair, 0)),
+            elem(key_value_pair, 1)
+          }
+        end),
+        put_opts
+      ])
+
+    case response do
+      {:ok, response_values} ->
+        {:reply, {:ok, response_values |> Enum.count(&(&1 == "OK"))}, opts}
+
+      _ ->
+        {:reply, response, opts}
+    end
   end
 
   def handle_call({:delete, keys}, _from, opts) do

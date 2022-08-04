@@ -39,6 +39,17 @@ defmodule Cacheman.Backend.Redis do
     end)
   end
 
+  def put_batch(conn, key_value_pairs, ttl) when is_list(key_value_pairs) do
+    list_of_commands =
+      Enum.map(key_value_pairs, fn pair ->
+        ["SET", elem(pair, 0), elem(pair, 1)] ++ ttl_command(ttl)
+      end)
+
+    :poolboy.transaction(conn, fn c ->
+      Redix.pipeline(c, list_of_commands)
+    end)
+  end
+
   def delete(conn, keys) do
     :poolboy.transaction(conn, fn c ->
       Redix.command(c, ["DEL"] ++ keys)
