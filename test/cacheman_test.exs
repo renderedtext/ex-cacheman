@@ -72,17 +72,13 @@ defmodule CachemanTest do
       assert {:ok, nil} = Cacheman.get(:good, key2)
     end
 
-    test "put_batch cant reach redis srever" do
+    test "get_batch" do
       key1 = "test-#{:rand.uniform(10_000)}"
       key2 = "test-#{:rand.uniform(10_000)}"
 
-      assert {:ok, nil} = Cacheman.get(:good, key1)
-      assert {:ok, nil} = Cacheman.get(:good, key2)
+      assert {:ok, 2} = Cacheman.put_batch(:good, [{key1, "value1"}, {key2, "value2"}])
 
-      assert {:error, _} = Cacheman.put_batch(:broken, [{key1, "value1"}, {key2, "value2"}])
-
-      assert {:ok, nil} = Cacheman.get(:good, key1)
-      assert {:ok, nil} = Cacheman.get(:good, key2)
+      assert {:ok, ["value1", "value2"]} = Cacheman.get_batch(:good, [key1, key2])
     end
 
     test "fetch and store" do
@@ -160,6 +156,26 @@ defmodule CachemanTest do
   describe "redis - broken" do
     test "put and get" do
       assert {:ok, nil} = Cacheman.get(:broken, "test1")
+    end
+
+    test "put_batch cant reach redis srever" do
+      key1 = "test-#{:rand.uniform(10_000)}"
+      key2 = "test-#{:rand.uniform(10_000)}"
+
+      assert {:ok, nil} = Cacheman.get(:good, key1)
+      assert {:ok, nil} = Cacheman.get(:good, key2)
+
+      assert {:error, _} = Cacheman.put_batch(:broken, [{key1, "value1"}, {key2, "value2"}])
+
+      assert {:ok, nil} = Cacheman.get(:good, key1)
+      assert {:ok, nil} = Cacheman.get(:good, key2)
+    end
+
+    test "get_batch" do
+      key1 = "test-#{:rand.uniform(10_000)}"
+      key2 = "test-#{:rand.uniform(10_000)}"
+
+      assert {:ok, [nil, nil]} = Cacheman.get_batch(:broken, [key1, key2])
     end
 
     test "fetch and store" do

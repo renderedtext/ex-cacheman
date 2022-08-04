@@ -81,6 +81,8 @@ defmodule Cacheman do
   use GenServer
   require Logger
 
+  @default_put_options [ttl: :infinity]
+
   #
   # Cacheman API
   #
@@ -109,14 +111,25 @@ defmodule Cacheman do
   The response can be one of the following:
 
    - {:ok, value}          - if the entry is found
-   - {:ok, nil}            - if the entry is not-found
-   - {:error, description} - if there was an error while communicating with cache backends
+   - {:ok, nil}            - if the entry is not-found, or redis error occurres
   """
   def get(name, key) do
     GenServer.call(full_process_name(name), {:get, key})
   end
 
-  @default_put_options [ttl: :infinity]
+  @doc """
+  Gets a list of values from the cache.
+
+  {:ok, ["value1", "value2"]} = Cacheman.get(:app, ["key1", "key2"])
+
+  The response can be one of the following:
+
+   - {:ok, list_of_values}  - if the entry is found. In place of every key that was not found will be nil value.
+                              All values will be nil if redis cant be reached.
+  """
+  def get_batch(name, keys) when is_list(keys) do
+    GenServer.call(full_process_name(name), {:get_batch, keys})
+  end
 
   @doc """
   Puts a value into the cache.
@@ -243,6 +256,25 @@ defmodule Cacheman do
       e ->
         Logger.error("Cacheman - #{inspect(e)}")
         {:reply, {:ok, nil}, opts}
+    end
+  end
+
+  def handle_call({:get_batch, keys}, _from, opts) do
+    response =
+      apply(opts.backend_module, :get_batch, [
+        opts.backend_pid,
+        Enum.map(keys, fn key ->
+          fully_qualified_key_name(opts, key)
+        end)
+      ])
+
+    case response do
+      {:ok, vals} ->
+        {:reply, {:ok, vals}, opts}
+
+      e ->
+        Logger.error("Cacheman - #{inspect(e)}")
+        {:reply, {:ok, :lists.concat(List.duplicate([nil], length(keys)))}, opts}
     end
   end
 
