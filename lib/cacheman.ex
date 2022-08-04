@@ -309,10 +309,10 @@ defmodule Cacheman do
     response =
       apply(opts.backend_module, :put_batch, [
         opts.backend_pid,
-        Enum.map(key_value_pairs, fn key_value_pair ->
+        Enum.map(key_value_pairs, fn {key, value} ->
           {
-            fully_qualified_key_name(opts, elem(key_value_pair, 0)),
-            elem(key_value_pair, 1)
+            fully_qualified_key_name(opts, key),
+            value
           }
         end),
         put_opts

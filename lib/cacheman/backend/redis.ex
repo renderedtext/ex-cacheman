@@ -52,8 +52,8 @@ defmodule Cacheman.Backend.Redis do
 
   def put_batch(conn, key_value_pairs, ttl) when is_list(key_value_pairs) do
     list_of_commands =
-      Enum.map(key_value_pairs, fn pair ->
-        ["SET", elem(pair, 0), elem(pair, 1)] ++ ttl_command(ttl)
+      Enum.map(key_value_pairs, fn {key, value} ->
+        ["SET", key, value] ++ ttl_command(ttl)
       end)
 
     :poolboy.transaction(conn, fn c ->
