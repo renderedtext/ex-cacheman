@@ -158,7 +158,7 @@ defmodule CachemanTest do
       assert {:ok, nil} = Cacheman.get(:broken, "test1")
     end
 
-    test "put_batch cant reach redis srever" do
+    test "put_batch cant reach redis server" do
       key1 = "test-#{:rand.uniform(10_000)}"
       key2 = "test-#{:rand.uniform(10_000)}"
 
