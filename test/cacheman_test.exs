@@ -39,8 +39,50 @@ defmodule CachemanTest do
       assert value == content
     end
 
+    test "put_batch" do
+      key1 = "test-#{:rand.uniform(10_000)}"
+      key2 = "test-#{:rand.uniform(10_000)}"
+
+      assert {:ok, nil} = Cacheman.get(:good, key1)
+      assert {:ok, nil} = Cacheman.get(:good, key2)
+
+      assert {:ok, 2} = Cacheman.put_batch(:good, [{key1, "value1"}, {key2, "value2"}])
+
+      assert {:ok, "value1"} = Cacheman.get(:good, key1)
+      assert {:ok, "value2"} = Cacheman.get(:good, key2)
+    end
+
+    test "put_batch with TTL" do
+      key1 = "test-#{:rand.uniform(10_000)}"
+      key2 = "test-#{:rand.uniform(10_000)}"
+
+      assert {:ok, nil} = Cacheman.get(:good, key1)
+      assert {:ok, nil} = Cacheman.get(:good, key2)
+
+      ttl = :timer.seconds(1)
+
+      assert {:ok, 2} = Cacheman.put_batch(:good, [{key1, "value1"}, {key2, "value2"}], ttl: ttl)
+
+      assert {:ok, "value1"} = Cacheman.get(:good, key1)
+      assert {:ok, "value2"} = Cacheman.get(:good, key2)
+
+      :timer.sleep(ttl)
+
+      assert {:ok, nil} = Cacheman.get(:good, key1)
+      assert {:ok, nil} = Cacheman.get(:good, key2)
+    end
+
+    test "get_batch" do
+      key1 = "test-#{:rand.uniform(10_000)}"
+      key2 = "test-#{:rand.uniform(10_000)}"
+
+      assert {:ok, 2} = Cacheman.put_batch(:good, [{key1, "value1"}, {key2, "value2"}])
+
+      assert {:ok, ["value1", "value2"]} = Cacheman.get_batch(:good, [key1, key2])
+    end
+
     test "fetch and store" do
-      key = "test-#{System.unique_integer([:positive])}"
+      key = "test-#{:rand.uniform(10_000)}"
 
       # at the start, there is no value
       assert {:ok, nil} = Cacheman.get(:good, key)
@@ -56,7 +98,7 @@ defmodule CachemanTest do
     end
 
     test "TTL for keys" do
-      key = "test-#{System.unique_integer([:positive])}"
+      key = "test-#{:rand.uniform(10_000)}"
       ttl = :timer.seconds(1)
 
       assert {:ok, "hello"} = Cacheman.put(:good, key, "hello", ttl: ttl)
@@ -116,8 +158,28 @@ defmodule CachemanTest do
       assert {:ok, nil} = Cacheman.get(:broken, "test1")
     end
 
+    test "put_batch cant reach redis server" do
+      key1 = "test-#{:rand.uniform(10_000)}"
+      key2 = "test-#{:rand.uniform(10_000)}"
+
+      assert {:ok, nil} = Cacheman.get(:good, key1)
+      assert {:ok, nil} = Cacheman.get(:good, key2)
+
+      assert {:error, _} = Cacheman.put_batch(:broken, [{key1, "value1"}, {key2, "value2"}])
+
+      assert {:ok, nil} = Cacheman.get(:good, key1)
+      assert {:ok, nil} = Cacheman.get(:good, key2)
+    end
+
+    test "get_batch" do
+      key1 = "test-#{:rand.uniform(10_000)}"
+      key2 = "test-#{:rand.uniform(10_000)}"
+
+      assert {:ok, [nil, nil]} = Cacheman.get_batch(:broken, [key1, key2])
+    end
+
     test "fetch and store" do
-      key = "test-#{System.unique_integer([:positive])}"
+      key = "test-#{:rand.uniform(10_000)}"
 
       assert {:ok, nil} = Cacheman.get(:broken, key)
       assert {:ok, "hello"} = Cacheman.fetch(:broken, key, fn -> {:ok, "hello"} end)
@@ -128,7 +190,7 @@ defmodule CachemanTest do
     end
 
     test "TTL for keys" do
-      key = "test-#{System.unique_integer([:positive])}"
+      key = "test-#{:rand.uniform(10_000)}"
       ttl = :timer.seconds(1)
 
       assert {:error, _} = Cacheman.put(:broken, key, "hello", ttl: ttl)

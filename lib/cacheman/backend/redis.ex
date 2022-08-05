@@ -20,12 +20,23 @@ defmodule Cacheman.Backend.Redis do
     end)
   end
 
+  def get_batch(conn, keys) when is_list(keys) do
+    list_of_commands =
+      Enum.map(keys, fn key ->
+        ["GET", key]
+      end)
+
+    :poolboy.transaction(conn, fn c ->
+      Redix.pipeline(c, list_of_commands)
+    end)
+  end
+
   def exists?(conn, key) do
     :poolboy.transaction(conn, fn c ->
       case Redix.command(c, ["EXISTS", key]) do
         {:ok, 1} -> true
         {:ok, 0} -> false
-        {:error, reason} -> raise reason
+        {:error, reason} -> reason
       end
     end)
   end
@@ -36,6 +47,17 @@ defmodule Cacheman.Backend.Redis do
         {:ok, "OK"} -> {:ok, value}
         e -> e
       end
+    end)
+  end
+
+  def put_batch(conn, key_value_pairs, ttl) when is_list(key_value_pairs) do
+    list_of_commands =
+      Enum.map(key_value_pairs, fn {key, value} ->
+        ["SET", key, value] ++ ttl_command(ttl)
+      end)
+
+    :poolboy.transaction(conn, fn c ->
+      Redix.pipeline(c, list_of_commands)
     end)
   end
 

@@ -81,6 +81,8 @@ defmodule Cacheman do
   use GenServer
   require Logger
 
+  @default_put_options [ttl: :infinity]
+
   #
   # Cacheman API
   #
@@ -109,14 +111,25 @@ defmodule Cacheman do
   The response can be one of the following:
 
    - {:ok, value}          - if the entry is found
-   - {:ok, nil}            - if the entry is not-found
-   - {:error, description} - if there was an error while communicating with cache backends
+   - {:ok, nil}            - if the entry is not-found, or redis error occurres
   """
   def get(name, key) do
     GenServer.call(full_process_name(name), {:get, key})
   end
 
-  @default_put_options [ttl: :infinity]
+  @doc """
+  Gets a list of values from the cache.
+
+  {:ok, ["value1", "value2"]} = Cacheman.get(:app, ["key1", "key2"])
+
+  The response can be one of the following:
+
+   - {:ok, list_of_values}  - if the entry is found. In place of every key that was not found will be nil value.
+                              All values will be nil if redis cant be reached.
+  """
+  def get_batch(name, keys) when is_list(keys) do
+    GenServer.call(full_process_name(name), {:get_batch, keys})
+  end
 
   @doc """
   Puts a value into the cache.
@@ -142,6 +155,26 @@ defmodule Cacheman do
     else
       GenServer.call(full_process_name(name), {:put, key, value, put_opts})
     end
+  end
+
+  @type key_value_pair :: {String.t(), String.t()}
+  @doc """
+  Puts a list of key-value pairs into the cache as a part of single request to the redis server
+
+  {:ok, no_of_successful_inserts} = Cacheman.put_batch(:app, [{"key1", "value1"}, {"key2", "value2"}])
+
+  The response can be one of the following:
+
+   - {:ok, no_of_successful_inserts}  - if no errors were raised by Redix
+   - {:error, redix_error}            - if there was an error while communicating with cache backends
+
+  Same as with Put function, TTL can optionally provided
+  """
+  @spec put_batch(String.t(), list(key_value_pair), list()) ::
+          {:ok, integer}
+          | {:error, Redix.Protocol.ParseError | Redix.Error | Redix.ConnectionError}
+  def put_batch(name, key_value_pairs, put_opts \\ @default_put_options) do
+    GenServer.call(full_process_name(name), {:put_batch, key_value_pairs, put_opts})
   end
 
   @doc """
@@ -226,6 +259,25 @@ defmodule Cacheman do
     end
   end
 
+  def handle_call({:get_batch, keys}, _from, opts) do
+    response =
+      apply(opts.backend_module, :get_batch, [
+        opts.backend_pid,
+        Enum.map(keys, fn key ->
+          fully_qualified_key_name(opts, key)
+        end)
+      ])
+
+    case response do
+      {:ok, vals} ->
+        {:reply, {:ok, vals}, opts}
+
+      e ->
+        Logger.error("Cacheman - #{inspect(e)}")
+        {:reply, {:ok, :lists.concat(List.duplicate([nil], length(keys)))}, opts}
+    end
+  end
+
   def handle_call({:exists?, key}, _from, opts) do
     response =
       apply(opts.backend_module, :exists?, [
@@ -233,7 +285,12 @@ defmodule Cacheman do
         fully_qualified_key_name(opts, key)
       ])
 
-    {:reply, response, opts}
+    if is_boolean(response) do
+      {:reply, response, opts}
+    else
+      Logger.error("Cacheman - #{inspect(response)}")
+      {:reply, false, opts}
+    end
   end
 
   def handle_call({:put, key, value, put_opts}, _from, opts) do
@@ -246,6 +303,28 @@ defmodule Cacheman do
       ])
 
     {:reply, response, opts}
+  end
+
+  def handle_call({:put_batch, key_value_pairs, put_opts}, _from, opts) do
+    response =
+      apply(opts.backend_module, :put_batch, [
+        opts.backend_pid,
+        Enum.map(key_value_pairs, fn {key, value} ->
+          {
+            fully_qualified_key_name(opts, key),
+            value
+          }
+        end),
+        put_opts
+      ])
+
+    case response do
+      {:ok, response_values} ->
+        {:reply, {:ok, response_values |> Enum.count(&(&1 == "OK"))}, opts}
+
+      _ ->
+        {:reply, response, opts}
+    end
   end
 
   def handle_call({:delete, keys}, _from, opts) do
