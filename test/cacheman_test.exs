@@ -88,7 +88,11 @@ defmodule CachemanTest do
       assert {:ok, nil} = Cacheman.get(:good, key)
 
       # if we fetch on empty value, the fallback function is executed
-      assert {:ok, "hello"} = Cacheman.fetch(:good, key, fn -> {:ok, "hello"} end)
+      assert {:ok, "hello"} =
+               Cacheman.fetch(:good, key, fn passed_key ->
+                 assert passed_key == key
+                 {:ok, "hello"}
+               end)
 
       # the value of the fallback is saved into the cache
       assert {:ok, "hello"} = Cacheman.get(:good, key)
@@ -182,11 +186,17 @@ defmodule CachemanTest do
       key = "test-#{:rand.uniform(10_000)}"
 
       assert {:ok, nil} = Cacheman.get(:broken, key)
-      assert {:ok, "hello"} = Cacheman.fetch(:broken, key, fn -> {:ok, "hello"} end)
+
+      assert {:ok, "hello"} =
+               Cacheman.fetch(:broken, key, fn passed_key ->
+                 assert passed_key == key
+                 {:ok, "hello"}
+               end)
+
       assert {:ok, nil} = Cacheman.get(:broken, key)
 
       assert {:ok, "this-is-not-used"} =
-               Cacheman.fetch(:broken, key, fn -> {:ok, "this-is-not-used"} end)
+               Cacheman.fetch(:broken, key, fn _ -> {:ok, "this-is-not-used"} end)
     end
 
     test "TTL for keys" do
