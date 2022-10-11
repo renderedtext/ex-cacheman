@@ -190,7 +190,7 @@ defmodule Cacheman do
   def fetch(name, key, put_opts, fallback) do
     case get(name, key) do
       {:ok, nil} ->
-        case fallback.() do
+        case if is_function(fallback, 0), do: fallback.(), else: fallback.(key) do
           {:ok, value} ->
             put(name, key, value, put_opts)
             {:ok, value}

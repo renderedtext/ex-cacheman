@@ -182,11 +182,17 @@ defmodule CachemanTest do
       key = "test-#{:rand.uniform(10_000)}"
 
       assert {:ok, nil} = Cacheman.get(:broken, key)
-      assert {:ok, "hello"} = Cacheman.fetch(:broken, key, fn -> {:ok, "hello"} end)
+
+      assert {:ok, "hello"} =
+               Cacheman.fetch(:broken, key, fn passed_key ->
+                 assert passed_key == key
+                 {:ok, "hello"}
+               end)
+
       assert {:ok, nil} = Cacheman.get(:broken, key)
 
       assert {:ok, "this-is-not-used"} =
-               Cacheman.fetch(:broken, key, fn -> {:ok, "this-is-not-used"} end)
+               Cacheman.fetch(:broken, key, fn _ -> {:ok, "this-is-not-used"} end)
     end
 
     test "TTL for keys" do
