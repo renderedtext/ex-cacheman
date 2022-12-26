@@ -41,24 +41,34 @@ defmodule Cacheman.Backend.Redis do
     end)
   end
 
-  def put(conn, key, value, ttl) do
-    :poolboy.transaction(conn, fn c ->
-      case Redix.command(c, ["SET", key, value] ++ ttl_command(ttl)) do
-        {:ok, "OK"} -> {:ok, value}
-        e -> e
-      end
-    end)
+  def put(conn, key, value, opts) do
+    :poolboy.transaction(
+      conn,
+      fn c ->
+        case Redix.command(c, ["SET", key, value] ++ ttl_command(opts[:ttl]),
+               timeout: opts[:timeout]
+             ) do
+          {:ok, "OK"} -> {:ok, value}
+          e -> e
+        end
+      end,
+      opts[:timeout]
+    )
   end
 
-  def put_batch(conn, key_value_pairs, ttl) when is_list(key_value_pairs) do
+  def put_batch(conn, key_value_pairs, opts) when is_list(key_value_pairs) do
     list_of_commands =
       Enum.map(key_value_pairs, fn {key, value} ->
-        ["SET", key, value] ++ ttl_command(ttl)
+        ["SET", key, value] ++ ttl_command(opts[:ttl])
       end)
 
-    :poolboy.transaction(conn, fn c ->
-      Redix.pipeline(c, list_of_commands)
-    end)
+    :poolboy.transaction(
+      conn,
+      fn c ->
+        Redix.pipeline(c, list_of_commands, timeout: opts[:timeout])
+      end,
+      opts[:timeout]
+    )
   end
 
   def delete(conn, keys) do
@@ -73,6 +83,6 @@ defmodule Cacheman.Backend.Redis do
     end)
   end
 
-  def ttl_command(ttl: :infinity), do: []
-  def ttl_command(ttl: ttl), do: ["PX", "#{ttl}"]
+  def ttl_command(:infinity), do: []
+  def ttl_command(ttl), do: ["PX", "#{ttl}"]
 end

@@ -41,6 +41,13 @@ defmodule Cacheman do
     dashboard
   end)
 
+  2. Timeouts:
+
+  By default, every redis command has to execute in 5 seconds. If there is a need
+  for longer timeout, it can be passed as:
+
+  {:ok, entry} = Cacheman.put_batch(:app, [{key, value}, ...], timeout: 20_000)
+
   2. Get a key:
 
   {:ok, entry} = Cacheman.get(:app, "user-dashboard")
@@ -81,8 +88,8 @@ defmodule Cacheman do
   use GenServer
   require Logger
 
+  @default_global_options [timeout: 5_000]
   @default_put_options [ttl: :infinity]
-
   #
   # Cacheman API
   #
@@ -148,12 +155,15 @@ defmodule Cacheman do
   Where in the previous example, the cache key will be storred for 5 minutes.
 
   Nil values are not storrable in the cache.
+
   """
-  def put(name, key, value, put_opts \\ @default_put_options) do
+  def put(name, key, value, opts \\ []) do
+    opts = (@default_put_options ++ @default_global_options) |> Keyword.merge(opts)
+
     if value == nil do
       {:ok, nil}
     else
-      GenServer.call(full_process_name(name), {:put, key, value, put_opts})
+      GenServer.call(full_process_name(name), {:put, key, value, opts}, opts[:timeout])
     end
   end
 
@@ -173,8 +183,10 @@ defmodule Cacheman do
   @spec put_batch(String.t(), list(key_value_pair), list()) ::
           {:ok, integer}
           | {:error, Redix.Protocol.ParseError | Redix.Error | Redix.ConnectionError}
-  def put_batch(name, key_value_pairs, put_opts \\ @default_put_options) do
-    GenServer.call(full_process_name(name), {:put_batch, key_value_pairs, put_opts})
+  def put_batch(name, key_value_pairs, opts \\ []) do
+    opts = (@default_put_options ++ @default_global_options) |> Keyword.merge(opts)
+
+    GenServer.call(full_process_name(name), {:put_batch, key_value_pairs, opts}, opts[:timeout])
   end
 
   @doc """
@@ -306,6 +318,8 @@ defmodule Cacheman do
   end
 
   def handle_call({:put_batch, key_value_pairs, put_opts}, _from, opts) do
+    Logger.debug("[Cacheman] OPTS: #{inspect(put_opts)}")
+
     response =
       apply(opts.backend_module, :put_batch, [
         opts.backend_pid,
