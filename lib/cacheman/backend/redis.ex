@@ -1,4 +1,6 @@
 defmodule Cacheman.Backend.Redis do
+  require Logger
+
   def start_link(opts) do
     poolboy_config = [
       {:worker_module, Redix},
@@ -59,7 +61,11 @@ defmodule Cacheman.Backend.Redis do
       end)
 
     :poolboy.transaction(conn, fn c ->
-      Redix.pipeline(c, list_of_commands, timeout: opts[:timeout])
+      # TODO temp loggers
+      Logger.info("Redis timeout: #{inspect(opts[:timeout])}")
+      ret = Redix.pipeline(c, list_of_commands, timeout: opts[:timeout])
+      Logger.info("Redis ret: #{inspect(ret)}")
+      ret
     end)
   end
 

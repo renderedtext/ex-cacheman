@@ -1,4 +1,6 @@
 defmodule Cacheman do
+  require Logger
+
   @doc """
   Cacheman is a Redis backed Rails.cache equivalent for Elixir applications.
 
@@ -310,6 +312,9 @@ defmodule Cacheman do
   end
 
   def handle_call({:put_batch, key_value_pairs, put_opts}, _from, opts) do
+    # TODO temp logger
+    Logger.info("[Cacheman] OPTS: #{inspect(put_opts)}")
+
     response =
       apply(opts.backend_module, :put_batch, [
         opts.backend_pid,
