@@ -1,5 +1,6 @@
 defmodule CachemanTest do
   use ExUnit.Case
+  import Mock
   doctest Cacheman
 
   setup_all do
@@ -70,6 +71,14 @@ defmodule CachemanTest do
 
       assert {:ok, nil} = Cacheman.get(:good, key1)
       assert {:ok, nil} = Cacheman.get(:good, key2)
+    end
+
+    test "put_batch with custom timeout" do
+      timeout = 10_000
+
+      with_mock Redix, [], pipeline: fn _, _, opts -> assert opts[:timeout] == timeout end do
+        Cacheman.put_batch(:good, [{"test_key", "test_value"}], timeout: timeout)
+      end
     end
 
     test "get_batch" do

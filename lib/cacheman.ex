@@ -81,7 +81,7 @@ defmodule Cacheman do
   use GenServer
   require Logger
 
-  @default_put_options [ttl: :infinity]
+  @default_put_options [ttl: :infinity, timeout: 5_000]
 
   #
   # Cacheman API
@@ -149,7 +149,9 @@ defmodule Cacheman do
 
   Nil values are not storrable in the cache.
   """
-  def put(name, key, value, put_opts \\ @default_put_options) do
+  def put(name, key, value, put_opts \\ []) do
+    put_opts = @default_put_options |> Keyword.merge(put_opts)
+
     if value == nil do
       {:ok, nil}
     else
@@ -173,7 +175,9 @@ defmodule Cacheman do
   @spec put_batch(String.t(), list(key_value_pair), list()) ::
           {:ok, integer}
           | {:error, Redix.Protocol.ParseError | Redix.Error | Redix.ConnectionError}
-  def put_batch(name, key_value_pairs, put_opts \\ @default_put_options) do
+  def put_batch(name, key_value_pairs, put_opts \\ []) do
+    put_opts = @default_put_options |> Keyword.merge(put_opts)
+
     GenServer.call(full_process_name(name), {:put_batch, key_value_pairs, put_opts})
   end
 
