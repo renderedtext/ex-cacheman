@@ -42,14 +42,18 @@ defmodule Cacheman.Backend.Redis do
   end
 
   def put(conn, key, value, opts) do
-    :poolboy.transaction(conn, fn c ->
-      case Redix.command(c, ["SET", key, value] ++ ttl_command(opts[:ttl]),
-             timeout: opts[:timeout]
-           ) do
-        {:ok, "OK"} -> {:ok, value}
-        e -> e
-      end
-    end)
+    :poolboy.transaction(
+      conn,
+      fn c ->
+        case Redix.command(c, ["SET", key, value] ++ ttl_command(opts[:ttl]),
+               timeout: opts[:timeout]
+             ) do
+          {:ok, "OK"} -> {:ok, value}
+          e -> e
+        end
+      end,
+      opts[:timeout]
+    )
   end
 
   def put_batch(conn, key_value_pairs, opts) when is_list(key_value_pairs) do
@@ -58,9 +62,13 @@ defmodule Cacheman.Backend.Redis do
         ["SET", key, value] ++ ttl_command(opts[:ttl])
       end)
 
-    :poolboy.transaction(conn, fn c ->
-      Redix.pipeline(c, list_of_commands, timeout: opts[:timeout])
-    end)
+    :poolboy.transaction(
+      conn,
+      fn c ->
+        Redix.pipeline(c, list_of_commands, timeout: opts[:timeout])
+      end,
+      opts[:timeout]
+    )
   end
 
   def delete(conn, keys) do
