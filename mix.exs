@@ -22,6 +22,7 @@ defmodule ExCacheman.MixProject do
   defp deps do
     [
       {:redix, "~> 1.2.0"},
+      {:mock, "~> 0.3.0", only: :test},
       {:poolboy, "~> 1.5"}
     ]
   end
