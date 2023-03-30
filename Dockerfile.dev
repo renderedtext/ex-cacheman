@@ -1,4 +1,4 @@
-FROM elixir:1.7
+FROM elixir:1.11
 
 #
 # Set up Elixir and Node environment
