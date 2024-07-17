@@ -8,7 +8,8 @@ defmodule Cacheman.Backend.Redis do
 
     redix_config = [
       host: opts.host,
-      port: opts.port
+      port: opts.port,
+      password: opts[:password]
     ]
 
     :poolboy.start_link(poolboy_config, redix_config)

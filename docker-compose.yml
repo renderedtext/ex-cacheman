@@ -12,6 +12,7 @@ services:
 
     links:
       - redis-1:redis-1
+      - redis-2:redis-2
 
   redis-1:
     image: "redis:5-buster"
@@ -20,6 +21,15 @@ services:
     volumes:
       - redis-data:/var/lib/redis
 
+  redis-2:
+    image: "redis:5-buster"
+    entrypoint: "redis-server --appendonly yes --requirepass my-pass"
+
+    volumes:
+      - redis-2-data:/var/lib/redis
+
 volumes:
   redis-data:
+    driver: local
+  redis-2-data:
     driver: local
