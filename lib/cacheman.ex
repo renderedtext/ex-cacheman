@@ -53,7 +53,7 @@ defmodule Cacheman do
 
 
   Every Cacheman instance must define a cache key prefix. This allows multiplexing
-  of caches accross multiple clients or areas of work.
+  of caches across multiple clients or areas of work.
 
   Example, a dedicated namespace for user caches and project caches:
 
@@ -111,7 +111,7 @@ defmodule Cacheman do
   The response can be one of the following:
 
    - {:ok, value}          - if the entry is found
-   - {:ok, nil}            - if the entry is not-found, or redis error occurres
+   - {:ok, nil}            - if the entry is not-found, or redis error occurrs
   """
   def get(name, key) do
     GenServer.call(full_process_name(name), {:get, key})
@@ -138,16 +138,16 @@ defmodule Cacheman do
 
   The response can be one of the following:
 
-   - {:ok, value}          - if the entry is sucessfully inserted
+   - {:ok, value}          - if the entry is successfully inserted
    - {:error, description} - if there was an error while communicating with cache backends
 
   Optionally, a TTL option can be passed to the put action:
 
   {:ok, user} = Cacheman.put(:app, "user-id", "hello-I-am-peter", ttl: :timer.minutes(5))
 
-  Where in the previous example, the cache key will be storred for 5 minutes.
+  Where in the previous example, the cache key will be stored for 5 minutes.
 
-  Nil values are not storrable in the cache.
+  Nil values are not storable in the cache.
   """
   def put(name, key, value, put_opts \\ @default_put_options) do
     if value == nil do
@@ -182,8 +182,8 @@ defmodule Cacheman do
 
   - if the cache key is found, it returns the found value
   - otherwise, it calculates the value of the fallback function
-     - if the fallback result is {:ok, val}, it is storred in the cache and returned
-     - otherwise, the vaue is returned and it is not storred in the cache
+     - if the fallback result is {:ok, val}, it is stored in the cache and returned
+     - otherwise, the vaue is returned and it is not stored in the cache
   """
   def fetch(name, key, fallback), do: fetch(name, key, @default_put_options, fallback)
 
